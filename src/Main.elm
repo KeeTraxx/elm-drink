@@ -1,12 +1,13 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
+import Browser.Events
 import Debug exposing (toString)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http exposing (..)
-import Json.Decode exposing (Decoder, field, list, map, map5, map6, string, succeed)
+import Json.Decode exposing (Decoder, field, list, map, null, oneOf, string, succeed)
 import Json.Decode.Extra exposing (andMap)
 import Platform.Cmd as Cmd
 import Platform.Sub as Sub
@@ -20,6 +21,8 @@ type Msg
     = NoOp
     | Failure String
     | FetchDrink
+    | Previous
+    | Next
     | GotDrink (Result Http.Error Drinks)
 
 
@@ -52,8 +55,28 @@ view model =
     { title = "Drinks desu"
     , body =
         [ div [] [ text model.error ]
-        , div [ class "drinks" ] (renderDrink model)
-        , button [ onClick FetchDrink ] [ text "Fetch" ]
+        , div [ class "drinks" ]
+            (case model.state of
+                Loading ->
+                    [ div [] [ text "Loading..." ] ]
+
+                Showing ->
+                    renderDrink model
+            )
+        , div [ class "controls" ]
+            [ div
+                [ onClick Previous
+                , style "visibility"
+                    (if model.activeIndex == 0 then
+                        "hidden"
+
+                     else
+                        ""
+                    )
+                ]
+                [ text "❮" ]
+            , div [ onClick Next ] [ text "❯" ]
+            ]
         ]
     }
 
@@ -83,6 +106,7 @@ renderDrink model =
                 ]
                 [ h1 [] [ text drink.name ]
                 , h2 [] [ text drink.category ]
+                , img [ src drink.thumbnail, width 150 ] []
                 , ul [] (List.map (\ing -> li [ class "ingredient" ] [ text ing.name ]) drink.ingredients)
                 ]
         )
@@ -101,6 +125,22 @@ update msg model =
         FetchDrink ->
             ( { model | state = Loading }, fetch )
 
+        Previous ->
+            ( if model.activeIndex > 0 then
+                { model | activeIndex = model.activeIndex - 1 }
+
+              else
+                model
+            , Cmd.none
+            )
+
+        Next ->
+            if model.activeIndex + 1 == List.length model.drinks then
+                ( { model | state = Loading }, fetch )
+
+            else
+                ( { model | activeIndex = model.activeIndex + 1 }, Cmd.none )
+
         GotDrink result ->
             case result of
                 Ok newDrinks ->
@@ -112,7 +152,30 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model.state of
+        Loading ->
+            Sub.none
+
+        Showing ->
+            Browser.Events.onKeyDown keyPressDecoder
+
+
+keyPressDecoder : Decoder Msg
+keyPressDecoder =
+    map keyPressToMsg (field "key" string)
+
+
+keyPressToMsg : String -> Msg
+keyPressToMsg key =
+    case key of
+        "ArrowLeft" ->
+            Previous
+
+        "ArrowRight" ->
+            Next
+
+        _ ->
+            NoOp
 
 
 fetch : Cmd Msg
@@ -227,34 +290,39 @@ drinkDecoder =
         |> andMap (field "strDrinkThumb" string)
         |> andMap (field "strGlass" string)
         |> andMap (field "strInstructions" string)
-        |> andMap (field "strIngredient1" string)
-        |> andMap (field "strIngredient2" string)
-        |> andMap (field "strIngredient3" string)
-        |> andMap (field "strIngredient4" string)
-        |> andMap (field "strIngredient5" string)
-        |> andMap (field "strIngredient6" string)
-        |> andMap (field "strIngredient7" string)
-        |> andMap (field "strIngredient8" string)
-        |> andMap (field "strIngredient9" string)
-        |> andMap (field "strIngredient10" string)
-        |> andMap (field "strIngredient11" string)
-        |> andMap (field "strIngredient12" string)
-        |> andMap (field "strIngredient13" string)
-        |> andMap (field "strIngredient14" string)
-        |> andMap (field "strMeasure1" string)
-        |> andMap (field "strMeasure2" string)
-        |> andMap (field "strMeasure3" string)
-        |> andMap (field "strMeasure4" string)
-        |> andMap (field "strMeasure5" string)
-        |> andMap (field "strMeasure6" string)
-        |> andMap (field "strMeasure7" string)
-        |> andMap (field "strMeasure8" string)
-        |> andMap (field "strMeasure9" string)
-        |> andMap (field "strMeasure10" string)
-        |> andMap (field "strMeasure11" string)
-        |> andMap (field "strMeasure12" string)
-        |> andMap (field "strMeasure13" string)
-        |> andMap (field "strMeasure14" string)
+        |> andMap (field "strIngredient1" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient2" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient3" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient4" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient5" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient6" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient7" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient8" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient9" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient10" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient11" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient12" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient13" nullOrStringToEmptyString)
+        |> andMap (field "strIngredient14" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure1" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure2" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure3" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure4" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure5" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure6" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure7" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure8" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure9" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure10" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure11" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure12" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure13" nullOrStringToEmptyString)
+        |> andMap (field "strMeasure14" nullOrStringToEmptyString)
+
+
+nullOrStringToEmptyString : Decoder String
+nullOrStringToEmptyString =
+    oneOf [ null "", string ]
 
 
 httpErrorString : Error -> String

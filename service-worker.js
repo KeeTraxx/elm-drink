@@ -6,7 +6,7 @@
 // (beware: the cache will grow and grow; there's no cleanup)
 
 const cacheName = 'v1.files';
-
+/*
 addEventListener('fetch',  fetchEvent => {
   const request = fetchEvent.request;
   if (request.method !== 'GET') {
@@ -32,3 +32,4 @@ addEventListener('fetch',  fetchEvent => {
     }
   }());
 });
+*/
