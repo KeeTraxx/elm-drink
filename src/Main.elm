@@ -2,7 +2,6 @@ module Main exposing (main)
 
 import Browser exposing (Document)
 import Browser.Events
-import Debug exposing (toString)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -338,7 +337,7 @@ httpErrorString error =
             "Network Error"
 
         BadStatus response ->
-            "Bad Http Status: " ++ toString response
+            "Bad Http Status: " ++ String.fromInt response
 
         BadBody message ->
             "Bad Body: "
